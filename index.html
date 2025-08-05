@@ -1,134 +1,91 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Calendario Dipendenti</title>
-<style>
-body { font-family: Arial; margin: 20px; }
-.hidden { display: none; }
-input, select, button { width: 100%; padding: 10px; margin: 5px 0; }
-</style>
+  <meta charset="UTF-8">
+  <title>Dashboard Master</title>
+  <style>
+    body { font-family: sans-serif; padding: 1em; }
+    table { border-collapse: collapse; width: 100%; margin-top: 1em; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    textarea { width: 100%; resize: vertical; }
+    .btn { padding: 6px 12px; margin: 4px; cursor: pointer; }
+  </style>
 </head>
 <body>
 
-<h2>Login</h2>
-<div id="loginDiv">
-  <input type="password" id="password" placeholder="Password">
-  <button onclick="login()">Entra</button>
-  <p id="loginError" style="color:red;"></p>
-</div>
+  <h2>Richieste in attesa</h2>
+  <div id="richieste"></div>
 
-<div id="mainDiv" class="hidden">
-  <h3>Benvenuto, <span id="nomeUtente"></span></h3>
+  <script>
+    const URL = 'https://script.google.com/macros/s/___TUO_DEPLOY_URL___/exec';
 
-  <div id="richiestaDiv">
-    <label>Tipo richiesta</label>
-    <select id="tipo">
-      <option value="ferie">Ferie</option>
-      <option value="permesso">Permesso</option>
-      <option value="malattia">Malattia</option>
-      <option value="infortunio">Infortunio</option>
-      <option value="104">104</option>
-      <option value="altro">Altro</option>
-    </select>
-
-    <label>Data inizio</label>
-    <input type="date" id="dataInizio">
-
-    <label>Data fine</label>
-    <input type="date" id="dataFine">
-
-    <div id="permessoOre" class="hidden">
-      <label>Ora inizio</label>
-      <input type="time" id="oraInizio">
-      <label>Ora fine</label>
-      <input type="time" id="oraFine">
-    </div>
-
-    <button onclick="inviaRichiesta()">Invia richiesta</button>
-  </div>
-
-  <div id="masterDiv" class="hidden">
-    <h3>Richieste in attesa</h3>
-    <div id="listaRichieste"></div>
-  </div>
-</div>
-
-<script>
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwuCWMWirnxZd4QhvGSokqZGBBaOo-f4eRrGEeOPAypc8QWv4RH-OkIyp1voIJqdEYy/exec";
-let nome = "";
-let isMaster = false;
-
-document.getElementById("tipo").addEventListener("change", function(){
-  document.getElementById("permessoOre").classList.toggle("hidden", this.value !== "permesso");
-});
-
-function login() {
-  const pwd = document.getElementById("password").value;
-  fetch(WEB_APP_URL, {
-    method: "POST",
-    body: JSON.stringify({ action: "login", password: pwd })
-  })
-  .then(r => r.text())
-  .then(txt => {
-    try {
-      const res = JSON.parse(txt);
-      if (res.success) {
-        nome = res.nome;
-        isMaster = res.master;
-        document.getElementById("nomeUtente").textContent = nome;
-        document.getElementById("loginDiv").classList.add("hidden");
-        document.getElementById("mainDiv").classList.remove("hidden");
-        if (isMaster) {
-          caricaRichieste();
-          document.getElementById("masterDiv").classList.remove("hidden");
-        }
-      } else {
-        document.getElementById("loginError").textContent = "Password errata";
-      }
-    } catch(e) {
-      document.getElementById("loginError").textContent = "Errore di connessione";
+    // Carica richieste in attesa
+    async function caricaRichieste() {
+      const res = await fetch(URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'getRichieste' }),
+      });
+      const richieste = await res.json();
+      mostraRichieste(richieste);
     }
-  });
-}
 
-// Nuova funzione per formattare data + ora
-function formatDateTime(data, ora, isPermesso) {
-  if (isPermesso && data && ora) {
-    return data + ' ' + ora;
-  } else if (data) {
-    return data + ' 00:00';
-  }
-  return '';
-}
+    // Genera tabella HTML
+    function mostraRichieste(richieste) {
+      if (richieste.length === 0) {
+        document.getElementById('richieste').innerHTML = '<p>Nessuna richiesta in attesa.</p>';
+        return;
+      }
 
-function inviaRichiesta() {
-  const tipo = document.getElementById("tipo").value;
-  const dataInizio = document.getElementById("dataInizio").value;
-  const dataFine = document.getElementById("dataFine").value;
-  const oraInizio = document.getElementById("oraInizio").value;
-  const oraFine = document.getElementById("oraFine").value;
+      let html = `<table>
+        <tr>
+          <th>Data</th><th>Nome</th><th>Tipo</th><th>Inizio</th><th>Fine</th><th>Azioni</th>
+        </tr>`;
 
-  const isPermesso = (tipo === "permesso");
-  const inizio = formatDateTime(dataInizio, oraInizio, isPermesso);
-  const fine = formatDateTime(dataFine, oraFine, isPermesso);
+      richieste.forEach(r => {
+        html += `<tr>
+          <td>${r.data}</td>
+          <td>${r.nome}</td>
+          <td>${r.tipo}</td>
+          <td>${r.inizio}</td>
+          <td>${r.fine}</td>
+          <td>
+            <button class="btn" onclick="approva('${r.id}')">✅</button>
+            <button class="btn" onclick="rifiutaPrompt('${r.id}')">❌</button>
+          </td>
+        </tr>`;
+      });
 
-  fetch(WEB_APP_URL, {
-    method: "POST",
-    body: JSON.stringify({
-      action: "richiesta",
-      nome: nome,
-      tipo: tipo,
-      inizio: inizio,
-      fine: fine
-    })
-  }).then(() => alert("Richiesta inviata e in attesa di approvazione"));
-}
+      html += '</table>';
+      document.getElementById('richieste').innerHTML = html;
+    }
 
-function caricaRichieste() {
-  // In una versione avanzata potremmo aggiungere qui il caricamento dinamico da Sheets
-}
-</script>
+    // Approvazione
+    async function approva(id) {
+      await fetch(URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'approva', id }),
+      });
+      caricaRichieste();
+    }
+
+    // Rifiuto con motivazione
+    function rifiutaPrompt(id) {
+      const motivazione = prompt("Motivazione del rifiuto:");
+      if (!motivazione) return;
+      rifiuta(id, motivazione);
+    }
+
+    async function rifiuta(id, motivazione) {
+      await fetch(URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'rifiuta', id, motivazione }),
+      });
+      caricaRichieste();
+    }
+
+    // Caricamento iniziale
+    caricaRichieste();
+  </script>
 
 </body>
 </html>
