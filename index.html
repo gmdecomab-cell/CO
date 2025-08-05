@@ -2,34 +2,75 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard Master</title>
+  <title>Dashboard Master - Richieste in Attesa</title>
   <style>
-    body { font-family: sans-serif; padding: 1em; }
-    table { border-collapse: collapse; width: 100%; margin-top: 1em; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    textarea { width: 100%; resize: vertical; }
-    .btn { padding: 6px 12px; margin: 4px; cursor: pointer; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f9f9f9;
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    button.btn {
+      padding: 6px 12px;
+      margin: 2px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button.approva {
+      background-color: #4CAF50;
+      color: white;
+    }
+    button.rifiuta {
+      background-color: #f44336;
+      color: white;
+    }
   </style>
 </head>
 <body>
 
-  <h2>Richieste in attesa</h2>
-  <div id="richieste"></div>
+  <h2>Dashboard Master - Richieste in Attesa</h2>
+
+  <div id="richieste">
+    <p>Caricamento richieste in corso...</p>
+  </div>
 
   <script>
-    const URL = 'https://script.google.com/macros/s/AKfycbyEzrPBtDeDlE0YL0KonJcrdEcdzcD9wr2siTSAyWLPobLWDfOolVCRnXfK1XauZJlt/exec';
+    const URL = 'https://script.google.com/macros/s/AKfycbyEzrPBtDeDlE0YL0KonJcrdEcdzcD9wr2siTSAyWLPobLWDfOolVCRnXfK1XauZJlt/exec'; // <-- Sostituisci con il tuo URL Apps Script
 
-    // Carica richieste in attesa
     async function caricaRichieste() {
-      const res = await fetch(URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'getRichieste' }),
-      });
-      const richieste = await res.json();
-      mostraRichieste(richieste);
+      try {
+        const res = await fetch(URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'getRichieste' }),
+        });
+        const richieste = await res.json();
+        mostraRichieste(richieste);
+      } catch (err) {
+        document.getElementById('richieste').innerHTML = '<p>Errore nel caricamento delle richieste.</p>';
+        console.error(err);
+      }
     }
 
-    // Genera tabella HTML
     function mostraRichieste(richieste) {
       if (richieste.length === 0) {
         document.getElementById('richieste').innerHTML = '<p>Nessuna richiesta in attesa.</p>';
@@ -49,8 +90,8 @@
           <td>${r.inizio}</td>
           <td>${r.fine}</td>
           <td>
-            <button class="btn" onclick="approva('${r.id}')">✅</button>
-            <button class="btn" onclick="rifiutaPrompt('${r.id}')">❌</button>
+            <button class="btn approva" onclick="approva('${r.id}')">Approva</button>
+            <button class="btn rifiuta" onclick="rifiutaPrompt('${r.id}')">Rifiuta</button>
           </td>
         </tr>`;
       });
@@ -59,7 +100,6 @@
       document.getElementById('richieste').innerHTML = html;
     }
 
-    // Approvazione
     async function approva(id) {
       await fetch(URL, {
         method: 'POST',
@@ -68,11 +108,11 @@
       caricaRichieste();
     }
 
-    // Rifiuto con motivazione
     function rifiutaPrompt(id) {
       const motivazione = prompt("Motivazione del rifiuto:");
-      if (!motivazione) return;
-      rifiuta(id, motivazione);
+      if (motivazione) {
+        rifiuta(id, motivazione);
+      }
     }
 
     async function rifiuta(id, motivazione) {
@@ -83,9 +123,8 @@
       caricaRichieste();
     }
 
-    // Caricamento iniziale
+    // Avvio
     caricaRichieste();
   </script>
-
 </body>
 </html>
