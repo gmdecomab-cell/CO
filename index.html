@@ -92,6 +92,16 @@ function login() {
   });
 }
 
+// Nuova funzione per formattare data + ora
+function formatDateTime(data, ora, isPermesso) {
+  if (isPermesso && data && ora) {
+    return data + ' ' + ora;
+  } else if (data) {
+    return data + ' 00:00';
+  }
+  return '';
+}
+
 function inviaRichiesta() {
   const tipo = document.getElementById("tipo").value;
   const dataInizio = document.getElementById("dataInizio").value;
@@ -99,14 +109,18 @@ function inviaRichiesta() {
   const oraInizio = document.getElementById("oraInizio").value;
   const oraFine = document.getElementById("oraFine").value;
 
+  const isPermesso = (tipo === "permesso");
+  const inizio = formatDateTime(dataInizio, oraInizio, isPermesso);
+  const fine = formatDateTime(dataFine, oraFine, isPermesso);
+
   fetch(WEB_APP_URL, {
     method: "POST",
     body: JSON.stringify({
       action: "richiesta",
       nome: nome,
       tipo: tipo,
-      inizio: tipo === "permesso" ? oraInizio : dataInizio,
-      fine: tipo === "permesso" ? oraFine : dataFine
+      inizio: inizio,
+      fine: fine
     })
   }).then(() => alert("Richiesta inviata e in attesa di approvazione"));
 }
