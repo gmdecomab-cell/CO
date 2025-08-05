@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Calendario Operatori</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 500px;
+      margin: auto;
+      padding: 1em;
+    }
+    label, select, input, textarea {
+      display: block;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 10px;
+      width: 100%;
+      margin-top: 10px;
+    }
+    #form, #logout { display: none; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <h2>Richiesta assenza</h2>
+
+  <div id="login">
+    <label for="password">Password breve</label>
+    <input type="password" id="password" />
+    <button onclick="login()">Accedi</button>
+    <p id="login-errore" style="color: red;"></p>
+  </div>
+
+  <div id="form">
+    <p>Benvenuto, <span id="nome"></span>!</p>
+
+    <label for="tipo">Tipo di richiesta</label>
+    <select id="tipo">
+      <option value="ferie">Ferie</option>
+      <option value="permesso">Permesso</option>
+      <option value="malattia">Malattia</option>
+    </select>
+
+    <label for="inizio">Inizio</label>
+    <input type="datetime-local" id="inizio" />
+
+    <label for="fine">Fine</label>
+    <input type="datetime-local" id="fine" />
+
+    <button onclick="inviaRichiesta()">Invia richiesta</button>
+    <p id="invia-ok" style="color: green;"></p>
+
+    <div id="logout">
+      <button onclick="esci()">Esci</button>
+    </div>
+  </div>
+
+  <script>
+    const URL = 'https://script.google.com/macros/s/___TUO_DEPLOY_URL___/exec';
+    let nomeUtente = '';
+    let isMaster = false;
+
+    function login() {
+      const password = document.getElementById('password').value;
+      fetch(URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'login', password })
+      })
+      .then(res => res.text())
+      .then(json => {
+        const data = JSON.parse(json);
+        if (data.success) {
+          nomeUtente = data.nome;
+          isMaster = data.master;
+          document.getElementById('nome').textContent = nomeUtente;
+          document.getElementById('login').style.display = 'none';
+          document.getElementById('form').style.display = 'block';
+          document.getElementById('logout').style.display = 'block';
+        } else {
+          document.getElementById('login-errore').textContent = 'Password errata';
+        }
+      });
+    }
+
+    function inviaRichiesta() {
+      const tipo = document.getElementById('tipo').value;
+      let inizio = document.getElementById('inizio').value;
+      let fine = document.getElementById('fine').value;
+
+      // Se non è permesso, forziamo orario a 00:00
+      if (tipo !== 'permesso') {
+        inizio = inizio.split('T')[0] + 'T00:00';
+        fine = fine.split('T')[0] + 'T00:00';
+      }
+
+      fetch(URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'richiesta',
+          nome: nomeUtente,
+          tipo,
+          inizio,
+          fine
+        })
+      })
+      .then(res => res.text())
+      .then(msg => {
+        document.getElementById('invia-ok').textContent = 'Richiesta inviata!';
+        setTimeout(() => { document.getElementById('invia-ok').textContent = ''; }, 3000);
+      });
+    }
+
+    function esci() {
+      location.reload();
+    }
+  </script>
+
+</body>
+</html>
