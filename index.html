@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calendario Dipendenti</title>
+<style>
+body { font-family: Arial; margin: 20px; }
+.hidden { display: none; }
+input, select, button { width: 100%; padding: 10px; margin: 5px 0; }
+</style>
+</head>
+<body>
+
+<h2>Login</h2>
+<div id="loginDiv">
+  <input type="password" id="password" placeholder="Password">
+  <button onclick="login()">Entra</button>
+  <p id="loginError" style="color:red;"></p>
+</div>
+
+<div id="mainDiv" class="hidden">
+  <h3>Benvenuto, <span id="nomeUtente"></span></h3>
+
+  <div id="richiestaDiv">
+    <label>Tipo richiesta</label>
+    <select id="tipo">
+      <option value="ferie">Ferie</option>
+      <option value="permesso">Permesso</option>
+      <option value="malattia">Malattia</option>
+      <option value="infortunio">Infortunio</option>
+      <option value="104">104</option>
+      <option value="altro">Altro</option>
+    </select>
+
+    <label>Data inizio</label>
+    <input type="date" id="dataInizio">
+
+    <label>Data fine</label>
+    <input type="date" id="dataFine">
+
+    <div id="permessoOre" class="hidden">
+      <label>Ora inizio</label>
+      <input type="time" id="oraInizio">
+      <label>Ora fine</label>
+      <input type="time" id="oraFine">
+    </div>
+
+    <button onclick="inviaRichiesta()">Invia richiesta</button>
+  </div>
+
+  <div id="masterDiv" class="hidden">
+    <h3>Richieste in attesa</h3>
+    <div id="listaRichieste"></div>
+  </div>
+</div>
+
+<script>
+const WEB_APP_URL = "INSERISCI_IL_TUO_URL_QUI";
+let nome = "";
+let isMaster = false;
+
+document.getElementById("tipo").addEventListener("change", function(){
+  document.getElementById("permessoOre").classList.toggle("hidden", this.value !== "permesso");
+});
+
+function login() {
+  const pwd = document.getElementById("password").value;
+  fetch(WEB_APP_URL, {
+    method: "POST",
+    body: JSON.stringify({ action: "login", password: pwd })
+  })
+  .then(r => r.text())
+  .then(txt => {
+    try {
+      const res = JSON.parse(txt);
+      if (res.success) {
+        nome = res.nome;
+        isMaster = res.master;
+        document.getElementById("nomeUtente").textContent = nome;
+        document.getElementById("loginDiv").classList.add("hidden");
+        document.getElementById("mainDiv").classList.remove("hidden");
+        if (isMaster) {
+          caricaRichieste();
+          document.getElementById("masterDiv").classList.remove("hidden");
+        }
+      } else {
+        document.getElementById("loginError").textContent = "Password errata";
+      }
+    } catch(e) {
+      document.getElementById("loginError").textContent = "Errore di connessione";
+    }
+  });
+}
+
+function inviaRichiesta() {
+  const tipo = document.getElementById("tipo").value;
+  const dataInizio = document.getElementById("dataInizio").value;
+  const dataFine = document.getElementById("dataFine").value;
+  const oraInizio = document.getElementById("oraInizio").value;
+  const oraFine = document.getElementById("oraFine").value;
+
+  fetch(WEB_APP_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "richiesta",
+      nome: nome,
+      tipo: tipo,
+      inizio: tipo === "permesso" ? oraInizio : dataInizio,
+      fine: tipo === "permesso" ? oraFine : dataFine
+    })
+  }).then(() => alert("Richiesta inviata e in attesa di approvazione"));
+}
+
+function caricaRichieste() {
+  // In una versione avanzata potremmo aggiungere qui il caricamento dinamico da Sheets
+}
+</script>
+
+</body>
+</html>
